@@ -1,0 +1,377 @@
+# Copyright (c) 2023 Simon W. Moore
+# All rights reserved.
+#
+# @BERI_LICENSE_HEADER_START@
+#
+# Licensed to BERI Open Systems C.I.C. (BERI) under one or more contributor
+# license agreements.  See the NOTICE file distributed with this work for
+# additional information regarding copyright ownership.  BERI licenses this
+# file to you under the BERI Hardware-Software License, Version 1.0 (the
+# "License"); you may not use this file except in compliance with the
+# License.  You may obtain a copy of the License at:
+#
+#   http://www.beri-open-systems.org/legal/license-1-0.txt
+#
+# Unless required by applicable law or agreed to in writing, Work distributed
+# under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+# CONDITIONS OF ANY KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations under the License.
+#
+# @BERI_LICENSE_HEADER_END@
+#
+# QSF (Quartus Settings File) for the Serial Lite III component on a DE10Pro
+# board containing a Stratix 10
+
+# Add search path to built components in this repository on the
+# assumption that this repository is a subrepo of Bluestuff
+set_global_assignment -name SEARCH_PATH S10FPGA/
+set_global_assignment -name SEARCH_PATH S10FPGA/output
+
+# Add timing constraints (SDC files)
+set_global_assignment -name SDC_FILE S10FPGA/s10dcfifo.sdc
+
+# Serial Lite III advanced clocking scheme requires the following (from the ug_slite3_streaming.pdf manual):
+set_instance_assignment -name GLOBAL_SIGNAL OFF -to *seriallite_iii_streaming*clock_gen:sink_clock_gen|dp_sync:coreclkin_reset_sync|dp_sync_regstage:dp_sync_stage_2*o*
+
+# High-speed serial link pins
+set_instance_assignment -name IO_STANDARD LVDS -to QSFP28A_REFCLK_p -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_TX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_TX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_TX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_TX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_RX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_RX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_RX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28A_RX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28A_INTERRUPT_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28A_LP_MODE -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28A_MOD_PRS_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28A_MOD_SEL_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28A_RST_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28A_SCL -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28A_SDA -entity DE10_Pro
+set_location_assignment PIN_T41 -to QSFP28A_REFCLK_p
+set_location_assignment PIN_F49 -to QSFP28A_TX_p[0]
+set_location_assignment PIN_G47 -to QSFP28A_TX_p[1]
+set_location_assignment PIN_E47 -to QSFP28A_TX_p[2]
+set_location_assignment PIN_C47 -to QSFP28A_TX_p[3]
+set_location_assignment PIN_G43 -to QSFP28A_RX_p[0]
+set_location_assignment PIN_D45 -to QSFP28A_RX_p[1]
+set_location_assignment PIN_C43 -to QSFP28A_RX_p[2]
+set_location_assignment PIN_A43 -to QSFP28A_RX_p[3]
+set_location_assignment PIN_AB35 -to QSFP28A_INTERRUPT_n
+set_location_assignment PIN_AB36 -to QSFP28A_LP_MODE
+set_location_assignment PIN_AB34 -to QSFP28A_MOD_PRS_n
+set_location_assignment PIN_AD35 -to QSFP28A_MOD_SEL_n
+set_location_assignment PIN_AC33 -to QSFP28A_RST_n
+set_location_assignment PIN_AC36 -to QSFP28A_SCL
+set_location_assignment PIN_AC35 -to QSFP28A_SDA
+set_instance_assignment -name IO_STANDARD LVDS -to QSFP28B_REFCLK_p -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_TX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_TX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_TX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_TX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_RX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_RX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_RX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28B_RX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28B_INTERRUPT_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28B_LP_MODE -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28B_MOD_PRS_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28B_MOD_SEL_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28B_RST_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28B_SCL -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28B_SDA -entity DE10_Pro
+set_location_assignment PIN_AM38 -to QSFP28B_REFCLK_p
+set_location_assignment PIN_AK49 -to QSFP28B_TX_p[0]
+set_location_assignment PIN_AL47 -to QSFP28B_TX_p[1]
+set_location_assignment PIN_AJ47 -to QSFP28B_TX_p[2]
+set_location_assignment PIN_AF49 -to QSFP28B_TX_p[3]
+set_location_assignment PIN_AL43 -to QSFP28B_RX_p[0]
+set_location_assignment PIN_AH45 -to QSFP28B_RX_p[1]
+set_location_assignment PIN_AF45 -to QSFP28B_RX_p[2]
+set_location_assignment PIN_AG43 -to QSFP28B_RX_p[3]
+set_location_assignment PIN_AF17 -to QSFP28B_INTERRUPT_n
+set_location_assignment PIN_AF34 -to QSFP28B_LP_MODE
+set_location_assignment PIN_AH17 -to QSFP28B_MOD_PRS_n
+set_location_assignment PIN_AJ33 -to QSFP28B_MOD_SEL_n
+set_location_assignment PIN_AG34 -to QSFP28B_RST_n
+set_location_assignment PIN_AH32 -to QSFP28B_SCL
+set_location_assignment PIN_AE36 -to QSFP28B_SDA
+set_instance_assignment -name IO_STANDARD LVDS -to QSFP28C_REFCLK_p -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_TX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_TX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_TX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_TX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_RX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_RX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_RX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28C_RX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28C_INTERRUPT_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28C_LP_MODE -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28C_MOD_PRS_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28C_MOD_SEL_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28C_RST_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28C_SCL -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28C_SDA -entity DE10_Pro
+set_location_assignment PIN_AM12 -to QSFP28C_REFCLK_p
+set_location_assignment PIN_AK1 -to QSFP28C_TX_p[0]
+set_location_assignment PIN_AL3 -to QSFP28C_TX_p[1]
+set_location_assignment PIN_AJ3 -to QSFP28C_TX_p[2]
+set_location_assignment PIN_AF1 -to QSFP28C_TX_p[3]
+set_location_assignment PIN_AL7 -to QSFP28C_RX_p[0]
+set_location_assignment PIN_AH5 -to QSFP28C_RX_p[1]
+set_location_assignment PIN_AF5 -to QSFP28C_RX_p[2]
+set_location_assignment PIN_AG7 -to QSFP28C_RX_p[3]
+set_location_assignment PIN_AF16 -to QSFP28C_INTERRUPT_n
+set_location_assignment PIN_AE16 -to QSFP28C_LP_MODE
+set_location_assignment PIN_AH16 -to QSFP28C_MOD_PRS_n
+set_location_assignment PIN_AE14 -to QSFP28C_MOD_SEL_n
+set_location_assignment PIN_AD15 -to QSFP28C_RST_n
+set_location_assignment PIN_AD16 -to QSFP28C_SCL
+set_location_assignment PIN_AF15 -to QSFP28C_SDA
+set_instance_assignment -name IO_STANDARD LVDS -to QSFP28D_REFCLK_p -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_TX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_TX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_TX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_TX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_RX_p[0] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_RX_p[1] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_RX_p[2] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "HSSI DIFFERENTIAL I/O" -to QSFP28D_RX_p[3] -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28D_INTERRUPT_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28D_LP_MODE -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28D_MOD_PRS_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28D_MOD_SEL_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28D_RST_n -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28D_SCL -entity DE10_Pro
+set_instance_assignment -name IO_STANDARD "3.0-V LVTTL" -to QSFP28D_SDA -entity DE10_Pro
+set_location_assignment PIN_T9 -to QSFP28D_REFCLK_p
+set_location_assignment PIN_F1 -to QSFP28D_TX_p[0]
+set_location_assignment PIN_G3 -to QSFP28D_TX_p[1]
+set_location_assignment PIN_E3 -to QSFP28D_TX_p[2]
+set_location_assignment PIN_C3 -to QSFP28D_TX_p[3]
+set_location_assignment PIN_G7 -to QSFP28D_RX_p[0]
+set_location_assignment PIN_D5 -to QSFP28D_RX_p[1]
+set_location_assignment PIN_C7 -to QSFP28D_RX_p[2]
+set_location_assignment PIN_A7 -to QSFP28D_RX_p[3]
+set_location_assignment PIN_AD14 -to QSFP28D_INTERRUPT_n
+set_location_assignment PIN_AB15 -to QSFP28D_LP_MODE
+set_location_assignment PIN_AC15 -to QSFP28D_MOD_PRS_n
+set_location_assignment PIN_AB12 -to QSFP28D_MOD_SEL_n
+set_location_assignment PIN_AB13 -to QSFP28D_RST_n
+set_location_assignment PIN_AB14 -to QSFP28D_SCL
+set_location_assignment PIN_AC14 -to QSFP28D_SDA
+
+# SWM added the following based on:
+#  https://www.intel.com/content/www/us/en/docs/programmable/683621/current/analog-pma-settings-parameters.html
+# and parameters determined from a sweep using System Console to find
+# a configuration resulting in low bit error rate. Then ran a further
+# set of seweeps over a longer period using BERT.bsv in order to
+# refine the paramenters across a 32 different links and 8 FPGA baords.
+# pre-emphasis first pre-tap = -12
+# pre-emphasis first post-tap polarity = -9
+
+############################## TX-A
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28A_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28A_TX_p[0]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28A_TX_p[0]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28A_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28A_TX_p[1]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28A_TX_p[1]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28A_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28A_TX_p[2]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28A_TX_p[2]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28A_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28A_TX_p[3]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28A_TX_p[3]
+
+
+############################## TX-B
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28B_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28B_TX_p[0]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28B_TX_p[0]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28B_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28B_TX_p[1]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28B_TX_p[1]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28B_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28B_TX_p[2]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28B_TX_p[2]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28B_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28B_TX_p[3]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28B_TX_p[3]
+
+
+############################## TX-C
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28C_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28C_TX_p[0]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28C_TX_p[0]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28C_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28C_TX_p[1]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28C_TX_p[1]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28C_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28C_TX_p[2]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28C_TX_p[2]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28C_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28C_TX_p[3]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28C_TX_p[3]
+
+
+############################## TX-D
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28D_TX_p[0]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28D_TX_p[0]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28D_TX_p[0]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28D_TX_p[1]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28D_TX_p[1]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28D_TX_p[1]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28D_TX_p[2]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28D_TX_p[2]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28D_TX_p[2]
+
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_pre_tap_1t=fir_pre_1t_neg" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_pre_tap = TX_PRE_TAP_AC_ON" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_pre_tap = TX_PRE_TAP_DC_ON" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_pre_tap_1t=12" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_sign_1st_post_tap=fir_post_1t_neg" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_posttap_en=enable" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_compensation_en=enable" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_ac_post_tap = TX_POST_TAP_W_JITCOMP_AC_ON" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_powermode_dc_post_tap = TX_POST_TAP_W_JITCOMP_DC_ON" -to QSFP28D_TX_p[3]
+set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_pre_emp_switching_ctrl_1st_post_tap=9" -to QSFP28D_TX_p[3]
+# set_instance_assignment -name HSSI_PARAMETER "pma_tx_buf_term_sel=<value>" -to QSFP28D_TX_p[3]
+
