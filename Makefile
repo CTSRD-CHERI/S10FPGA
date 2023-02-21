@@ -41,6 +41,7 @@ BSCFLAGS = -p $(BSVPATH)
 BUILDDIR = build
 BDIR = $(BUILDDIR)/bdir
 
+REPODIR = S10FPGA
 OUTPUTDIR = output
 
 BSCFLAGS += -bdir $(BDIR)
@@ -64,15 +65,11 @@ IPTXPLL = xcvr_atx_pll_s10_htile
 IPTXPLLDIR = $(IPTXPLL)
 
 .PHONY: all
-all:  TimeStamp.bsv QSF_Params.bsv mkStatusDevice_Instance mkSerialLite3_Instance mkBERT_Instance
+all:  TimeStamp.bsv mkStatusDevice_Instance mkSerialLite3_Instance mkBERT_Instance
 
 .PHONY: TimeStamp.bsv
 TimeStamp.bsv:
 	./timestamp.py > TimeStamp.bsv
-
-.PHONY: QSF_Params.bsv
-QSF_Params.bsv:
-	./qsf_params.py > QSF_Params.bsv
 
 mkStatusDevice_Instance: generate_ip_chipid $(SRC_StatusDevice)
 	mkdir -p $(OUTPUTDIR)/$@-info $(BDIR)
@@ -89,17 +86,17 @@ mkBERT_Instance: $(SRC_BERT)
 .PHONY: generate_ip_SerialLite3
 generate_ip_SerialLite3: $(IPSL3DIR)/$(IPSL3)_inst.v
 $(IPSL3DIR)/$(IPSL3)_inst.v: $(IPSL3).ip
-	quartus_ipgenerate -synthesis=verilog --clear_ip_generation_dirs --generate_ip_file --ip_file=bsv/$(IPSL3).ip ../DE10_Pro.qsf
+	quartus_ipgenerate -synthesis=verilog --clear_ip_generation_dirs --generate_ip_file --ip_file=$(REPODIR)/$(IPSL3).ip ../DE10_Pro.qsf
 
 .PHONY: generate_ip_chipid
 generate_ip_chipid: $(IPCHIPIDDIR)/$(IPCHIPID)_inst.v
 $(IPCHIPIDDIR)/$(IPCHIPID)_inst.v: $(IPCHIPID).ip
-	quartus_ipgenerate -synthesis=verilog --clear_ip_generation_dirs --generate_ip_file --ip_file=bsv/$(IPCHIPID).ip ../DE10_Pro.qsf
+	quartus_ipgenerate -synthesis=verilog --clear_ip_generation_dirs --generate_ip_file --ip_file=$(REPODIR)/$(IPCHIPID).ip ../DE10_Pro.qsf
 
 .PHONY: generate_ip_txpll
 generate_ip_txpll: $(IPTXPLLDIR)/$(IPTXPLL)_inst.v
 $(IPTXPLLDIR)/$(IPTXPLL)_inst.v: $(IPTXPLL).ip
-	quartus_ipgenerate -synthesis=verilog --clear_ip_generation_dirs --generate_ip_file --ip_file=bsv/$(IPTXPLL).ip ../DE10_Pro.qsf
+	quartus_ipgenerate -synthesis=verilog --clear_ip_generation_dirs --generate_ip_file --ip_file=$(REPODIR)/$(IPTXPLL).ip ../DE10_Pro.qsf
 
 
 .PHONY: clean
