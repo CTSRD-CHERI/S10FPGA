@@ -136,19 +136,22 @@ interface SerialLite3_Sig #(
 , numeric type t_aruser, numeric type t_ruser
 );
 
-  (* prefix = "axstrs_tx" *)
+  (* prefix = "axstrs_C_csi_tx_clk_C__R_rsi_tx_rst_n_R__tx" *)
   interface AXI4Stream_Slave_Sig #(0, 256, 0, 9) tx;
-  (* prefix = "axstrm_rx" *)
+  (* prefix = "axstrm_C_cso_rx_clk_C__R_rso_rx_rst_n_R__rx" *)
   interface AXI4Stream_Master_Sig #(0, 256, 0, 9) rx;
   interface Clock rx_clk;
   interface Reset rx_rst_n;
-  (* result = "coe_link_status", always_ready, always_enabled *)
+  (* result = "coe_C_csi_clk_C__R_rsi_rst_n_R__link_status"
+   , always_ready
+   , always_enabled
+   *)
   method SerialLite3_LinkStatus link_status;
-  (* prefix = "axls_management" *)
+  (* prefix = "axls_C_csi_clk_C__R_rsi_rst_n_R__management" *)
   interface AXI4Lite_Slave_Sig #( t_addr, t_data
                                 , t_awuser, t_wuser, t_buser
                                 , t_aruser, t_ruser) management_subordinate;
-  (* prefix = "coe" *)
+  (* prefix = "coe_C_csi_clk_C__R_rsi_rst_n_R_" *)
   interface SerialLite3_ExternalPins pins;
 endinterface
 
@@ -498,10 +501,13 @@ endmodule
 
 
 // Create a stand-alone instance that could be imported into Platform Designer as a component
-(* synthesize, default_clock_osc = "csi_clk", default_reset = "rsi_rst_n"
-             , clock_prefix = "cso", reset_prefix= "rso" *)
+(* synthesize
+ , default_clock_osc = "csi_clk"
+ , default_reset = "_C_csi_clk_C_rsi_rst_n"
+ , clock_prefix = "cso"
+ , reset_prefix= "_C_cso_rx_clk_C_rso" *)
 module mkSerialLite3_Instance ( (* osc = "csi_tx_clk" *) Clock tx_clk
-                              , (* reset = "rsi_tx_rst_n" *) Reset tx_rst_n
+                              , (* reset = "_C_csi_tx_clk_C_rsi_tx_rst_n" *) Reset tx_rst_n
                               , (* osc = "csi_qsfp_refclk" *) Clock qsfp_refclk
                               , SerialLite3_Sig#(/*SerialLite3_StreamFlit, SerialLite3_StreamFlit,*/
                                                  //  t_addr, t_data, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
