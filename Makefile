@@ -64,10 +64,9 @@ IPTXPLL = xcvr_atx_pll_s10_htile
 IPTXPLLDIR = $(IPTXPLL)
 
 .PHONY: all
-all:  TimeStamp.bsv mkStatusDevice_Instance mkSerialLite3_Instance mkBERT_Instance
+all:  mkStatusDevice_Instance mkSerialLite3_Instance mkBERT_Instance
 
-.PHONY: TimeStamp.bsv
-TimeStamp.bsv:
+TimeStamp.bsv: timestamp.py
 	./timestamp.py > TimeStamp.bsv
 
 mkStatusDevice_Instance: generate_ip_chipid $(SRC_StatusDevice)
@@ -78,7 +77,7 @@ mkSerialLite3_Instance: generate_ip_SerialLite3 generate_ip_txpll $(SRC_SerialLi
 	mkdir -p $(OUTPUTDIR)/$@-info $(BDIR)
 	$(BSC) -info-dir $(OUTPUTDIR)/$@-info -vdir $(OUTPUTDIR) -opt-undetermined-vals -unspecified-to X $(BSCFLAGS) -verilog -g mkSerialLite3_Instance -u $(SRC_SerialLite3)
 
-mkBERT_Instance: $(SRC_BERT)
+mkBERT_Instance: TimeStamp.bsv $(SRC_BERT)
 	mkdir -p $(OUTPUTDIR)/$@-info $(BDIR)
 	$(BSC) -info-dir $(OUTPUTDIR)/$@-info -vdir $(OUTPUTDIR) -opt-undetermined-vals -unspecified-to X $(BSCFLAGS) -verilog -g mkBERT_Instance -u $(SRC_BERT)
 
