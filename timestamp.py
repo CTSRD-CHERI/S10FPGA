@@ -16,7 +16,7 @@ current_date = datetime.now()
 
 # Generate a Bluespec function with a timestamp that can be included
 # in the design we want to ensure is built
-print("function Bit#(64) timestamp() = 64'h",
-      int(current_date.strftime("%Y%m%d%H%M%S")),";")
+print("function Bit#(64) timestamp() = 64'h%s;"
+      % (current_date.strftime("%Y%m%d%H%M%S")))
 exit(0)
 
