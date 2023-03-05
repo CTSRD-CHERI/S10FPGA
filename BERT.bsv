@@ -64,11 +64,11 @@ interface BERT_Sig#(
 , numeric type t_aruser, numeric type t_ruser
 );
 
-  (* prefix = "axstrm_txstream" *)
+  (* prefix = "axstrm_C_csi_tx_clk_C__R_rsi_tx_rst_n_R__txstream" *)
   interface AXI4Stream_Master_Sig #(0, 256, 0, 9) txstream;
-  (* prefix = "axstrs_rxstream" *)
+  (* prefix = "axstrs_C_csi_rx_clk_C__R_rsi_rx_rst_n_R__rxstream" *)
   interface AXI4Stream_Slave_Sig  #(0, 256, 0, 9) rxstream;
-  (* prefix = "axls_mem_csrs" *)
+  (* prefix = "axls_C_clk_C__R_rst_n_R__mem_csrs" *)
   interface AXI4Lite_Slave_Sig #( t_addr, 32
                                 , t_awuser, t_wuser, t_buser
                                 , t_aruser, t_ruser) mem_csrs;
@@ -86,15 +86,15 @@ function Bit#(256) next_bert_test(Bit#(256) current);
 endfunction
 
 
-module mkBERT(Clock csi_rx_clk, Reset csi_rx_rst_n,
-	      Clock csi_tx_clk, Reset csi_tx_rst_n,
+module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
+	      Clock csi_tx_clk, Reset rsi_tx_rst_n,
 	      BERT#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc);
 
   AXI4Stream_Shim#(0, 256, 0, 9)                  rxfifo <- mkAXI4StreamShimUGSizedFIFOF32();
-  AXI4Stream_Shim#(0, 256, 0, 9)            rx_fast_fifo <- mkAXI4StreamShimUGSizedFIFOF32(clocked_by csi_rx_clk, reset_by csi_rx_rst_n);
-  SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9)) rx_sync_fifo <- mkS10DCFIFOtoCC(32, csi_rx_clk, csi_rx_rst_n);
-  AXI4Stream_Shim#(0, 256, 0, 9)            tx_fast_fifo <- mkAXI4StreamShimSizedFIFOF32(clocked_by csi_tx_clk, reset_by csi_tx_rst_n);
-  SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9)) tx_sync_fifo <- mkS10DCFIFOfromCC(32, csi_tx_clk, csi_tx_rst_n);
+  AXI4Stream_Shim#(0, 256, 0, 9)            rx_fast_fifo <- mkAXI4StreamShimUGSizedFIFOF32(clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
+  SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9)) rx_sync_fifo <- mkS10DCFIFOtoCC(32, csi_rx_clk, rsi_rx_rst_n);
+  AXI4Stream_Shim#(0, 256, 0, 9)            tx_fast_fifo <- mkAXI4StreamShimSizedFIFOF32(clocked_by csi_tx_clk, reset_by rsi_tx_rst_n);
+  SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9)) tx_sync_fifo <- mkS10DCFIFOfromCC(32, csi_tx_clk, rsi_tx_rst_n);
   FIFOF#(Bit#(64))                            data_to_tx <- mkUGFIFOF();
   Reg#(Bit#(32))                        data_to_tx_upper <- mkReg(0);
   Reg#(Bit#(32))                           rx_data_upper <- mkReg(0);
@@ -312,13 +312,13 @@ endmodule
 
 
 
-module toBERT_Sig#(Clock csi_rx_clk, Reset csi_rx_rst_n,
-		   Clock csi_tx_clk, Reset csi_tx_rst_n,
+module toBERT_Sig#(Clock csi_rx_clk, Reset rsi_rx_rst_n,
+		   Clock csi_tx_clk, Reset rsi_tx_rst_n,
 		   BERT#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc)
                   (BERT_Sig#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser));
   let sigAXI4LitePort <- toAXI4Lite_Slave_Sig(ifc.mem_csrs);
-  let sigTXport <- toAXI4Stream_Master_Sig(ifc.txstream, clocked_by csi_tx_clk, reset_by csi_tx_rst_n);
-  let sigRXport <- toAXI4Stream_Slave_Sig(ifc.rxstream, clocked_by csi_rx_clk, reset_by csi_rx_rst_n);
+  let sigTXport <- toAXI4Stream_Master_Sig(ifc.txstream, clocked_by csi_tx_clk, reset_by rsi_tx_rst_n);
+  let sigRXport <- toAXI4Stream_Slave_Sig(ifc.rxstream, clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
   return interface BERT_Sig;
     interface mem_csrs = sigAXI4LitePort;
     interface txstream = sigTXport;
@@ -327,13 +327,17 @@ module toBERT_Sig#(Clock csi_rx_clk, Reset csi_rx_rst_n,
 endmodule
 
 
-(* synthesize *)
-module mkBERT_Instance(Clock csi_rx_clk, Reset csi_rx_rst_n,
-		       Clock csi_tx_clk, Reset csi_tx_rst_n,
-		       BERT_Sig#(// t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
+(* synthesize
+ , default_clock_osc = "clk"
+ , default_reset = "_C_clk_C_rst_n" *)
+module mkBERT_Instance( (* osc = "csi_rx_clk" *) Clock csi_rx_clk
+                      , (* reset = "_C_csi_rx_clk_C_rsi_rx_rst_n" *) Reset rsi_rx_rst_n
+                      , (* osc = "csi_tx_clk" *) Clock csi_tx_clk
+                      , (* reset = "_C_csi_tx_clk_C_rsi_tx_rst_n" *) Reset rsi_tx_rst_n
+                      , BERT_Sig#(// t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
                                          8,        0,       0,       0,        0,       0) pg);
-  let pg <- mkBERT(csi_rx_clk, csi_rx_rst_n, csi_tx_clk, csi_tx_rst_n);
-  let pg_sig <- toBERT_Sig(csi_rx_clk, csi_rx_rst_n, csi_tx_clk, csi_tx_rst_n, pg);
+  let pg <- mkBERT(csi_rx_clk, rsi_rx_rst_n, csi_tx_clk, rsi_tx_rst_n);
+  let pg_sig <- toBERT_Sig(csi_rx_clk, rsi_rx_rst_n, csi_tx_clk, rsi_tx_rst_n, pg);
   return pg_sig;
 endmodule
 
