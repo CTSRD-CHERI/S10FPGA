@@ -40,6 +40,14 @@ import S10FIFO    :: *;
 // Include generated BSV component that contains a build timestamp in BCD
 `include "TimeStamp.bsv"
 
+typedef enum {
+  PingReq = 8'h00
+, PingRsp = 8'h01
+, BERTTraffic = 8'h02
+, CtrlTraffic = 8'h03
+, Res = 8'hff
+} SyncChannel deriving (Bits, Eq);
+
 interface BERT#(
   numeric type t_addr
 , numeric type t_awuser, numeric type t_wuser, numeric type t_buser
@@ -81,7 +89,7 @@ function Bit#(256) next_bert_test(Bit#(256) current);
   next[ 63:  0] = current[63:0] + prime_number;
   next[127: 64] = next[63:0] ^ 64'hffffffff_ffffffff;
   next[191:128] = next[63:0] & 64'haaaaaaaa_aaaaaaaa;
-  next[255:192] = next[63:0] | 64'haaaaaaaa_aaaaaaaa; // note that it is imprtant that the top byte != 0 for routing to the BERT to work
+  next[255:192] = next[63:0] | 64'haaaaaaaa_aaaaaaaa;
   return next;
 endfunction
 
@@ -133,22 +141,16 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     // we must not delay receiving BERT flits that will come
     // afterwards otherwise we'll get BERT errors.
     rx_sync_fifo.deq;
-    
-    // TODO: use the sync byte stored in the ruser field to stear where the flit should go?
-    // At present we're going to use the top byte of the tdata field to route the flit
-    if((flit.tdata[255:248]==8'h00) && rxfifo.slave.canPut())
-      begin
-        if(flit.tdata[33:32]==1) // ping flit
-	    ping_reply.enq(?);
-        else if(flit.tdata[33:32]==2) // ping reply flit
-	  ping_in_flight.deq;
-	else if(rxfifo.slave.canPut)
-	  rxfifo.slave.put(flit); // forward to NIOS monitor port
-      end
-    if((flit.tdata[255:248]!=8'h00) && bert_fifo.notFull)
-      begin
-	bert_fifo.enq(flit.tdata); // forward to BERT checker
-      end
+
+    // use the sync byte in the tuser field to steer where the flit should go
+    SyncChannel sync = unpack (truncate (flit.tuser));
+    case (sync) matches
+      PingReq: ping_reply.enq (?);
+      PingRsp: ping_in_flight.deq;
+      BERTTraffic &&& bert_fifo.notFull: bert_fifo.enq (flit.tdata);
+      CtrlTraffic &&& rxfifo.slave.canPut: rxfifo.slave.put (flit);
+    endcase
+
   endrule
   
   // rule runs in csi_tx_clk domain to forward data from the main clock domain
@@ -240,30 +242,31 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   endrule
   rule tx_data_mux(!tx_rate_limit);
     Maybe#(Bit#(256)) d = tagged Invalid;
-    Bit#(8) user = 0;
-    
+    SyncChannel sync = unpack (8'hff);
+
     if(ping_reply.notEmpty)
       begin
-	ping_reply.deq;
-	d = tagged Valid (2<<32);
+        ping_reply.deq;
+        sync = PingRsp;
       end
     else if (ping_send.notEmpty)
       begin
-	ping_send.deq;
-	ping_in_flight.enq(?);
-	ping_zero_timer.enq(?);
-	d = tagged Valid (1<<32);
+        ping_send.deq;
+        ping_in_flight.enq(?);
+        ping_zero_timer.enq(?);
+        sync = PingReq;
       end
     else if(data_to_tx.notEmpty)
       begin
-	data_to_tx.deq;
-	d = tagged Valid zeroExtend(data_to_tx.first);
-	user = truncate(data_to_tx.first>>32);
+        data_to_tx.deq;
+        d = tagged Valid zeroExtend(data_to_tx.first);
+        sync = CtrlTraffic;
       end
     else if(bert_gen_enabled)
       begin
-	bert_gen <= next_bert_test(bert_gen);
-	d = tagged Valid bert_gen;
+        bert_gen <= next_bert_test(bert_gen);
+        d = tagged Valid bert_gen;
+        sync = BERTTraffic;
       end
     
     // tuser: transfers to {start_of_burst (1b), sync_vector (8b)} of Serial Lite III link
@@ -276,7 +279,7 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
 				   , tlast: True
 				   , tid: ?
 				   , tdest: ?
-				   , tuser: {1'h1,user}
+				   , tuser: {1'h1, pack (sync)}
 				   };
 	tx_sync_fifo.enq(flit);
 	// DReg assignment (defaults to 1) to ensure that we don't transmit every single
