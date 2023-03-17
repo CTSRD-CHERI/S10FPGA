@@ -93,10 +93,9 @@ function Bit#(256) next_bert_test(Bit#(256) current);
   return next;
 endfunction
 
-
 module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
-	      Clock csi_tx_clk, Reset rsi_tx_rst_n,
-	      BERT#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc);
+              Clock csi_tx_clk, Reset rsi_tx_rst_n,
+              BERT#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc);
 
   AXI4Stream_Shim#(0, 256, 0, 9)                  rxfifo <- mkAXI4StreamShimUGSizedFIFOF32();
   AXI4Stream_Shim#(0, 256, 0, 9)            rx_fast_fifo <- mkAXI4StreamShimUGSizedFIFOF32(clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
@@ -124,9 +123,9 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   FIFOF#(Bit#(0))                         ping_in_flight <- mkUGFIFOF1;
   FIFOF#(Bit#(0))                        ping_zero_timer <- mkUGFIFOF1;
   Reg#(Bit#(32))                              ping_timer <- mkReg(0);
-  
+
   let axiShim <- mkAXI4LiteShimFF;
-  
+
   // rule runs in csi_rx_clk domain to forward data to the main clock domain
   rule clock_cross_rx_data(rx_fast_fifo.master.canPeek());
     rx_sync_fifo.enq(rx_fast_fifo.master.peek());
@@ -135,7 +134,7 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
 
   rule clock_crossed_rx_data_to_axi4_stream(rx_sync_fifo.notEmpty());
     AXI4Stream_Flit#(0,256,0,9) flit = rx_sync_fifo.first;
-    
+
     // Always deq even if the corresponding receiving FIFO is full
     // since we cannot stop the receiver.  Also, if the rxfifo is full
     // we must not delay receiving BERT flits that will come
@@ -152,18 +151,18 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     endcase
 
   endrule
-  
+
   // rule runs in csi_tx_clk domain to forward data from the main clock domain
   rule clock_cross_tx_data;
     tx_fast_fifo.slave.put(tx_sync_fifo.first);
     tx_sync_fifo.deq;
-  endrule  
-  
+  endrule
+
   rule do_ping_timer(ping_in_flight.notEmpty || ping_zero_timer.notEmpty);
     if(ping_zero_timer.notEmpty)
       begin
-	ping_timer <= 0;
-	ping_zero_timer.deq;
+        ping_timer <= 0;
+        ping_zero_timer.deq;
       end
     else if(ping_in_flight.notEmpty)
       ping_timer <= ping_timer+1;
@@ -175,8 +174,8 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     if((r.araddr[7:3]==0) && rxfifo.master.canPeek)
       begin
         let a = rxfifo.master.peek;
-	d = truncate(a.tdata);
-	rx_data_upper <= truncate(a.tdata>>32);
+        d = truncate(a.tdata);
+        rx_data_upper <= truncate(a.tdata>>32);
         rxfifo.master.drop;
       end
     if(r.araddr[7:3]==1)
@@ -226,13 +225,13 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
 
     if((aw.awaddr[7:3]>=4) && (aw.awaddr[7:3]<=7))
       bert_zero_counters <= True;
-    
+
     if (aw.awaddr[7:3]==5'h10)
       testreg <= ~w.wdata;
-    
+
     if (aw.awaddr[7:3]==5'h11)
       bert_gen_enabled <= w.wdata[0]==1;
-    
+
     let rsp = AXI4Lite_BFlit { bresp: OKAY, buser: ? };
     axiShim.master.b.put (rsp);
   endrule
@@ -268,28 +267,28 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
         d = tagged Valid bert_gen;
         sync = BERTTraffic;
       end
-    
+
     // tuser: transfers to {start_of_burst (1b), sync_vector (8b)} of Serial Lite III link
     //        for end_of_flit the sync_vector contains the number of INVAID 64b words sent
     if(isValid(d))
       begin
-	let flit = AXI4Stream_Flit{  tdata: fromMaybe(?, d)
-				   , tstrb: ~0
-				   , tkeep: ~0
-				   , tlast: True
-				   , tid: ?
-				   , tdest: ?
-				   , tuser: {1'h1, pack (sync)}
-				   };
-	tx_sync_fifo.enq(flit);
-	// DReg assignment (defaults to 1) to ensure that we don't transmit every single
-	// cycle since the receiver running nominally at the same clock frequency on
-	// another FPGA may be a fraction slower.
-	tx_rate_limit_ctr <= tx_rate_limit_ctr+1;
+        let flit = AXI4Stream_Flit {  tdata: fromMaybe(?, d)
+                                   , tstrb: ~0
+                                   , tkeep: ~0
+                                   , tlast: True
+                                   , tid: ?
+                                   , tdest: ?
+                                   , tuser: {1'h1, pack (sync)}
+                                   };
+        tx_sync_fifo.enq(flit);
+        // DReg assignment (defaults to 1) to ensure that we don't transmit every single
+        // cycle since the receiver running nominally at the same clock frequency on
+        // another FPGA may be a fraction slower.
+        tx_rate_limit_ctr <= tx_rate_limit_ctr+1;
       end
 
   endrule
-  
+
   rule bert_tester(bert_fifo.notEmpty());
     Bit#(256) flit = bert_fifo.first;
     bert_fifo.deq;
@@ -306,7 +305,7 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   endrule
   rule bert_increment_error(bert_inc_error || bert_zero_counters);
     bert_error_flits <= bert_zero_counters ? 0 : bert_error_flits+1;
-  endrule  
+  endrule
   // interface
   interface mem_csrs = axiShim.slave;
   interface txstream = tx_fast_fifo.master;
@@ -316,8 +315,8 @@ endmodule
 
 
 module toBERT_Sig#(Clock csi_rx_clk, Reset rsi_rx_rst_n,
-		   Clock csi_tx_clk, Reset rsi_tx_rst_n,
-		   BERT#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc)
+                   Clock csi_tx_clk, Reset rsi_tx_rst_n,
+                   BERT#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc)
                   (BERT_Sig#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser));
   let sigAXI4LitePort <- toAXI4Lite_Slave_Sig(ifc.mem_csrs);
   let sigTXport <- toAXI4Stream_Master_Sig(ifc.txstream, clocked_by csi_tx_clk, reset_by rsi_tx_rst_n);
