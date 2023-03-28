@@ -108,10 +108,13 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
               BERT#( t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
                    , t_payload ) ifc)
   provisos ( Bits #(t_payload, t_payload_sz)
-           , Add #(t_payload_sz, _, 256) );
+           , Mul #(_, 256, t_payload_sz) );
 
-  SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9))      intTXFF <- mkS10DCFIFOfromCC(32, csi_tx_clk, rsi_tx_rst_n);
-  SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9))      intRXFF <- mkS10DCFIFOtoCC(32, csi_rx_clk, rsi_rx_rst_n);
+  SyncFIFOIfc #(t_payload) intTXFF <- mkS10DCFIFOfromCC(32, csi_tx_clk, rsi_tx_rst_n);
+  SyncFIFOIfc #(t_payload) intRXFF <- mkS10DCFIFOtoCC(32, csi_rx_clk, rsi_rx_rst_n);
+  Source #(Bit #(256)) intTXSrc <- toNarrowBitSource (intTXFF, clocked_by csi_tx_clk, reset_by rsi_tx_rst_n);
+  Sink #(Bit #(256)) intRXSnk <- toNarrowBitSink (intRXFF, clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
+
   AXI4Stream_Shim#(0, 256, 0, 9)                  rxfifo <- mkAXI4StreamShimUGSizedFIFOF32();
   AXI4Stream_Shim#(0, 256, 0, 9)            rx_fast_fifo <- mkAXI4StreamShimUGSizedFIFOF32(clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
   SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9)) rx_sync_fifo <- mkS10DCFIFOtoCC(32, csi_rx_clk, rsi_rx_rst_n);
@@ -147,7 +150,7 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     // use the sync byte in the tuser field to steer where the flit should go
     SyncChannel sync = unpack (truncate (flit.tuser));
     case (sync) matches
-      InternalTraffic &&& intRXFF.notFull: intRXFF.enq (flit);
+      InternalTraffic &&& intRXSnk.canPut: intRXSnk.put (flit.tdata);
       default: rx_sync_fifo.enq (flit);
     endcase
   endrule
@@ -174,13 +177,21 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
 
   // rules runs in csi_tx_clk domain to forward data from the main clock domain
   (* descending_urgency = "clock_cross_internal_tx, clock_cross_tx_data" *)
+  rule clock_cross_internal_tx;
+    let x <- get (intTXSrc);
+    let flit = AXI4Stream_Flit { tdata: zeroExtend (pack (x))
+                               , tstrb: ~0
+                               , tkeep: ~0
+                               , tlast: True
+                               , tid: ?
+                               , tdest: ?
+                               , tuser: {1'h1, pack (InternalTraffic)}
+                               };
+    tx_fast_fifo.slave.put (flit);
+  endrule
   rule clock_cross_tx_data;
     tx_fast_fifo.slave.put(tx_sync_fifo.first);
     tx_sync_fifo.deq;
-  endrule
-  rule clock_cross_internal_tx;
-    tx_fast_fifo.slave.put(intTXFF.first);
-    intTXFF.deq;
   endrule
 
   rule do_ping_timer(ping_in_flight.notEmpty || ping_zero_timer.notEmpty);
@@ -333,25 +344,8 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   endrule
   // interface
   interface mem_csrs = axiShim.slave;
-  interface internalTX = interface Sink;
-    method canPut = intTXFF.notFull;
-    method put (x) if (intTXFF.notFull) = action
-      let flit = AXI4Stream_Flit { tdata: zeroExtend (pack (x))
-                                 , tstrb: ~0
-                                 , tkeep: ~0
-                                 , tlast: True
-                                 , tid: ?
-                                 , tdest: ?
-                                 , tuser: {1'h1, pack (InternalTraffic)}
-                                 };
-      intTXFF.enq (flit);
-    endaction;
-  endinterface;
-  interface internalRX = interface Source;
-    method canPeek = intRXFF.notEmpty;
-    method peek if (intRXFF.notEmpty) = unpack (truncate (intRXFF.first.tdata));
-    method drop if (intRXFF.notEmpty) = intRXFF.deq;
-  endinterface;
+  interface internalTX = toSink (intTXFF);
+  interface internalRX = toSource (intRXFF);
   interface externalTX = tx_fast_fifo.master;
   interface externalRX = rx_fast_fifo.slave;
 endmodule
