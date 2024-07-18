@@ -73,6 +73,10 @@ mkStatusDevice_Instance: generate_ip_chipid $(SRC_StatusDevice)
 	mkdir -p $(OUTPUTDIR)/$@-info $(BDIR)
 	$(BSC) -info-dir $(OUTPUTDIR)/$@-info -vdir $(OUTPUTDIR) -opt-undetermined-vals -unspecified-to X $(BSCFLAGS) -verilog -g mkStatusDevice_Instance -u $(SRC_StatusDevice)
 
+mkStatusDevice_Instance_Status15: generate_ip_chipid $(SRC_StatusDevice)
+	mkdir -p $(OUTPUTDIR)/$@-info $(BDIR)
+	$(BSC) -info-dir $(OUTPUTDIR)/$@-info -vdir $(OUTPUTDIR) -opt-undetermined-vals -unspecified-to X $(BSCFLAGS) -verilog -g mkStatusDevice_Instance_Status15 -u $(SRC_StatusDevice)
+
 mkSerialLite3_Instance: generate_ip_SerialLite3 generate_ip_txpll $(SRC_SerialLite3)
 	mkdir -p $(OUTPUTDIR)/$@-info $(BDIR)
 	$(BSC) -info-dir $(OUTPUTDIR)/$@-info -vdir $(OUTPUTDIR) -opt-undetermined-vals -unspecified-to X $(BSCFLAGS) -verilog -g mkSerialLite3_Instance -u $(SRC_SerialLite3)

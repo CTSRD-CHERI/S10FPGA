@@ -43,13 +43,13 @@ import ChipID     :: *;
 
 
 (* always_ready, always_enabled*)
-interface StatusConduits;
+interface StatusConduits #(numeric type n);
   // conduit interfaces
   // TODO: it might be better to have a vector of conduits, though naming might be a challenge
-  method Action status_a(Bit#(32) coe);
-  method Action status_b(Bit#(32) coe);
-  method Action status_c(Bit#(32) coe);
-  method Action status_d(Bit#(32) coe);
+  method Action status_a(Bit#(n) coe);
+  method Action status_b(Bit#(n) coe);
+  method Action status_c(Bit#(n) coe);
+  method Action status_d(Bit#(n) coe);
 endinterface
 
 
@@ -57,13 +57,14 @@ interface StatusDevice#(
   numeric type t_addr
 , numeric type t_awuser, numeric type t_wuser, numeric type t_buser
 , numeric type t_aruser, numeric type t_ruser
+, numeric type t_status_sz
 );
   // memory slave for control/status registers
   interface AXI4Lite_Slave #( t_addr, 32
                             , t_awuser, t_wuser, t_buser
                             , t_aruser, t_ruser) mem_csrs;
 
-  interface StatusConduits status;
+  interface StatusConduits #(t_status_sz) status;
 endinterface
 
 
@@ -72,20 +73,22 @@ interface StatusDevice_Sig#(
   numeric type t_addr
 , numeric type t_awuser, numeric type t_wuser, numeric type t_buser
 , numeric type t_aruser, numeric type t_ruser
+, numeric type t_status_sz
 );
   (* prefix = "axls_mem_csrs" *)
   interface AXI4Lite_Slave_Sig #( t_addr, 32
                                 , t_awuser, t_wuser, t_buser
                                 , t_aruser, t_ruser) mem_csrs;
   (* prefix = "coe" *)
-  interface StatusConduits status;
+  interface StatusConduits #(t_status_sz) status;
 endinterface
 
 
-module mkStatusDevice(StatusDevice#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc);
+module mkStatusDevice(StatusDevice#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser, t_status_sz) ifc)
+provisos (Add #(__a, t_status_sz, 32));
 
-  Vector#(4, Reg#(Bit#(32))) status_regs <- replicateM(mkReg(0));
-  Vector#(4, Reg#(Bit#(32))) status_regs_latch <- replicateM(mkReg(0));
+  Vector#(4, Reg#(Bit#(t_status_sz))) status_regs <- replicateM(mkReg(0));
+  Vector#(4, Reg#(Bit#(t_status_sz))) status_regs_latch <- replicateM(mkReg(0));
   Vector#(4, Reg#(Bool)) zero_status_reg <- replicateM(mkDReg(False));
   Reg#(Bit#(64))                 chip_id <- mkReg(0);
   Reg#(Bool)               chip_id_valid <- mkReg(False);
@@ -113,7 +116,7 @@ module mkStatusDevice(StatusDevice#(t_addr, t_awuser, t_wuser, t_buser, t_aruser
     Bit#(3) word_addr =r.araddr[4:2];
     if(word_addr[2]==0) // word_addr<4
       begin
-	d = status_regs[word_addr[1:0]];
+	d = zeroExtend(status_regs[word_addr[1:0]]);
 	zero_status_reg[word_addr[1:0]] <= True;
       end
     if(word_addr==4)
@@ -139,17 +142,17 @@ module mkStatusDevice(StatusDevice#(t_addr, t_awuser, t_wuser, t_buser, t_aruser
   // interface
   interface mem_csrs = axiShim.slave;
   interface StatusConduits status;
-    method Action status_a(Bit#(32) coe);  status_regs[0] <= coe;  endmethod
-    method Action status_b(Bit#(32) coe);  status_regs[1] <= coe;  endmethod
-    method Action status_c(Bit#(32) coe);  status_regs[2] <= coe;  endmethod
-    method Action status_d(Bit#(32) coe);  status_regs[3] <= coe;  endmethod
+    method Action status_a(Bit#(t_status_sz) coe);  status_regs[0] <= coe;  endmethod
+    method Action status_b(Bit#(t_status_sz) coe);  status_regs[1] <= coe;  endmethod
+    method Action status_c(Bit#(t_status_sz) coe);  status_regs[2] <= coe;  endmethod
+    method Action status_d(Bit#(t_status_sz) coe);  status_regs[3] <= coe;  endmethod
   endinterface
 endmodule
 
 
 
-module toStatusDevice_Sig#(StatusDevice#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser) ifc)
-                  (StatusDevice_Sig#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser));
+module toStatusDevice_Sig#(StatusDevice#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser, t_status_sz) ifc)
+                  (StatusDevice_Sig#(t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser, t_status_sz));
   let sigAXI4LitePort <- toAXI4Lite_Slave_Sig(ifc.mem_csrs);
   return interface StatusDevice_Sig;
     interface mem_csrs = sigAXI4LitePort;
@@ -159,8 +162,18 @@ endmodule
 
 
 (* synthesize *)
-module mkStatusDevice_Instance(StatusDevice_Sig#(// t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
-                                                         5,        0,       0,       0,        0,       0) sd);
+module mkStatusDevice_Instance(StatusDevice_Sig#(
+  // t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser, t_status_sz
+          5,        0,       0,       0,        0,       0,          32) sd);
+  let sd <- mkStatusDevice();
+  let sd_sig <- toStatusDevice_Sig(sd);
+  return sd_sig;
+endmodule
+
+(* synthesize *)
+module mkStatusDevice_Instance_Status15(StatusDevice_Sig#(
+  // t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser, t_status_sz
+          5,        0,       0,       0,        0,       0,          15) sd);
   let sd <- mkStatusDevice();
   let sd_sig <- toStatusDevice_Sig(sd);
   return sd_sig;
