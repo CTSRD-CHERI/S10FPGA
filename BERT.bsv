@@ -380,7 +380,7 @@ module mkBERT_Instance( (* osc = "csi_rx_clk" *) Clock csi_rx_clk
                       , (* reset = "_C_csi_tx_clk_C_rsi_tx_rst_n" *) Reset rsi_tx_rst_n
                       , BERT_Sig#(// t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
                                          8,        0,       0,       0,        0,       0
-                                 , Bit #(256)) pg);
+                                 , Bit #(512)) pg);
   let pg <- mkBERT(csi_rx_clk, rsi_rx_rst_n, csi_tx_clk, rsi_tx_rst_n);
   let pg_sig <- toBERT_Sig(csi_rx_clk, rsi_rx_rst_n, csi_tx_clk, rsi_tx_rst_n, pg);
   return pg_sig;
