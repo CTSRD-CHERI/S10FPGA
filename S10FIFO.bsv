@@ -88,7 +88,9 @@ module mkS10DCFIFOfromCC
    SyncFIFOIfc#(a) ifc)
   provisos (Bits#(a,a_width));  
 
-  SyncFIFOIfc#(a)   fifo <- mkS10DCFIFO(depth, dClkIn, dRstIn_n);
+  SyncFIFOIfc#(a) fifo <-
+    (genVerilog) ? mkS10DCFIFO(depth, dClkIn, dRstIn_n)
+                 : mkSyncFIFOFromCC(depth, dClkIn);
   return fifo;
 endmodule
 
@@ -101,7 +103,9 @@ module mkS10DCFIFOtoCC
 
   Clock           dClkIn <- exposeCurrentClock;
   Reset         dRstIn_n <- exposeCurrentReset;
-  SyncFIFOIfc#(a)   fifo <- mkS10DCFIFO(depth, dClkIn, dRstIn_n, clocked_by sClkIn, reset_by sRstIn_n);
+  SyncFIFOIfc#(a) fifo <-
+    (genVerilog) ? mkS10DCFIFO(depth, dClkIn, dRstIn_n, clocked_by sClkIn, reset_by sRstIn_n)
+                 : mkSyncFIFOToCC(depth, sClkIn, sRstIn_n);
   return fifo;
 endmodule
 
