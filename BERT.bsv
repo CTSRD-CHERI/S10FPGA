@@ -357,16 +357,23 @@ module toBERT_Sig#(Clock csi_rx_clk, Reset rsi_rx_rst_n,
                    BERT#( t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
                         , t_payload ) ifc)
                   (BERT_Sig#( t_addr, t_awuser, t_wuser, t_buser, t_aruser, t_ruser
-                            , t_payload));
-  let sigAXI4LitePort <- toAXI4Lite_Slave_Sig(ifc.mem_csrs);
-  let sigTXport <- toAXI4Stream_Master_Sig(ifc.externalTX, clocked_by csi_tx_clk, reset_by rsi_tx_rst_n);
-  let sigRXport <- toAXI4Stream_Slave_Sig(ifc.externalRX, clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
+                            , t_payload))
+  provisos (Bits #(t_payload, t_payload_sz));
+  let   sigAXI4LitePort <- toAXI4Lite_Slave_Sig(ifc.mem_csrs);
+  let sigInternalTXport <- toSink_Sig(ifc.internalTX);
+  let sigInternalRXport <- toSource_Sig(ifc.internalRX);
+  let sigExternalTXport <- toAXI4Stream_Master_Sig( ifc.externalTX
+                                                  , clocked_by csi_tx_clk
+                                                  , reset_by rsi_tx_rst_n );
+  let sigExternalRXport <- toAXI4Stream_Slave_Sig( ifc.externalRX
+                                                 , clocked_by csi_rx_clk
+                                                 , reset_by rsi_rx_rst_n );
   return interface BERT_Sig;
-    interface mem_csrs = sigAXI4LitePort;
-    interface internalTX = ?;
-    interface internalRX = ?;
-    interface externalTX = sigTXport;
-    interface externalRX = sigRXport;
+    interface   mem_csrs = sigAXI4LitePort;
+    interface internalTX = sigInternalTXport;
+    interface internalRX = sigInternalRXport;
+    interface externalTX = sigExternalTXport;
+    interface externalRX = sigExternalRXport;
   endinterface;
 endmodule
 
