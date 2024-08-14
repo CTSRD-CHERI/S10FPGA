@@ -150,7 +150,7 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     // use the sync byte in the tuser field to steer where the flit should go
     SyncChannel sync = unpack (truncate (flit.tuser));
     case (sync) matches
-      InternalTraffic &&& intRXSnk.canPut: intRXSnk.put (flit.tdata);
+      InternalTraffic: if (intRXSnk.canPut) intRXSnk.put (flit.tdata);
       default: rx_sync_fifo.enq (flit);
     endcase
   endrule
