@@ -36,6 +36,7 @@ import Clocks     :: *;
 import ConfigReg  :: *;
 import DReg       :: *;
 import S10FIFO    :: *;
+import Vector     :: *;
 
 // Include generated BSV component that contains a build timestamp in BCD
 `include "TimeStamp.bsv"
@@ -45,9 +46,9 @@ typedef enum {
 , PingRsp = 8'h01
 , BERTTraffic = 8'h02
 , CtrlTraffic = 8'h03
-, InternalTraffic = 8'h04
+, InternalTraffic = 8'h10
 , Res = 8'hff
-} SyncChannel deriving (Bits, Eq);
+} SyncChannel deriving (FShow, Bits, Eq);
 
 interface BERT#(
   numeric type t_addr
@@ -92,6 +93,43 @@ interface BERT_Sig#(
                                 , t_aruser, t_ruser) mem_csrs;
 endinterface
 
+////////////////////////////////////////////////////////////////////////////////
+
+interface EventCounter#(numeric type n);
+  method Action inc;
+  method Action clear;
+  method Bit#(n) _read;
+endinterface
+
+module mkEventCounter(EventCounter#(n));
+  Reg#(Bit#(n)) cnt[2] <- mkCReg(2, 0);
+  Reg#(Bool) incReg <- mkDReg(False);
+  (* fire_when_enabled, no_implicit_conditions *)
+  rule incCnt (incReg); cnt[0] <= cnt[0] + 1; endrule
+  method inc = action incReg <= True; endaction;
+  method clear = action cnt[1] <= 0; endaction;
+  method _read = cnt[0];
+endmodule
+
+module mkSyncEventCounterToCC#(Clock fromClk, Reset fromRst)(EventCounter#(n));
+  Reg#(Bit#(n)) cnt[2] <- mkCReg(2, 0);
+  SyncFIFOIfc #(Bit#(0)) incFF <- mkSyncFIFOToCC(8, fromClk, fromRst);
+  (* fire_when_enabled *)
+  rule incCnt (incFF.notEmpty); cnt[0] <= cnt[0] + 1; incFF.deq; endrule
+  method inc = action incFF.enq(?); endaction;
+  method clear = action cnt[1] <= 0; endaction;
+  method _read = cnt[0];
+endmodule
+
+module mkSyncValToCC #(val_t val, Clock fromClk, Reset fromRst)(ReadOnly#(val_t))
+  provisos(Bits#(val_t, val_sz));
+  Reg#(val_t) r <- mkSyncRegToCC(?, fromClk, fromRst);
+  (* fire_when_enabled *)
+  rule updt; r <= val; endrule
+  method _read = r._read;
+endmodule
+
+////////////////////////////////////////////////////////////////////////////////
 
 function Bit#(256) next_bert_test(Bit#(256) current);
   Bit#(64)  prime_number = truncate(65'h1_00000000_00000000 - 65'd59); // 2^64-59 is prime
@@ -110,17 +148,59 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   provisos ( Bits #(t_payload, t_payload_sz)
            , Mul #(_, 256, t_payload_sz) );
 
-  SyncFIFOIfc #(t_payload) intTXFF <- mkS10DCFIFOfromCC(32, csi_tx_clk, rsi_tx_rst_n);
-  SyncFIFOIfc #(t_payload) intRXFF <- mkS10DCFIFOtoCC(32, csi_rx_clk, rsi_rx_rst_n);
+  // event selector
+  Vector #(14, EventCounter#(32)) events;
+  Reg#(Bit#(32)) event_idx <- mkReg(0);
+  Integer e_intTXFF_enq = 0;
+  Integer e_intTXSrc_drop = 1;
+  Integer e_intRXSnk_put = 2;
+  Integer e_intRXFF_deq = 3;
+  Integer e_rxfifo_enq = 4;
+  Integer e_rxfifo_deq = 5;
+  Integer e_rx_fast_fifo_enq = 6;
+  Integer e_rx_fast_fifo_deq = 7;
+  Integer e_rx_sync_fifo_enq = 8;
+  Integer e_rx_sync_fifo_deq = 9;
+  Integer e_tx_fast_fifo_enq = 10;
+  Integer e_tx_fast_fifo_deq = 11;
+  Integer e_tx_sync_fifo_enq = 12;
+  Integer e_tx_sync_fifo_deq = 13;
+
+  // internal traffic
+  SyncFIFOIfc #(t_payload) intTXFF //<- mkS10DCFIFOfromCC(32, csi_tx_clk, rsi_tx_rst_n);
+                                   <- mkSyncFIFOFromCC(32, csi_tx_clk);
+  events[e_intTXFF_enq] <- mkEventCounter;
+  ReadOnly#(Bool) intTXFF_notFull = interface ReadOnly; method _read = intTXFF.notFull; endinterface;
+  ReadOnly#(Bool) intTXFF_notEmpty <- mkSyncValToCC(intTXFF.notEmpty, csi_tx_clk, rsi_tx_rst_n);
   Source #(Bit #(256)) intTXSrc <- toNarrowBitSource (intTXFF, clocked_by csi_tx_clk, reset_by rsi_tx_rst_n);
+  events[e_intTXSrc_drop] <- mkSyncEventCounterToCC(csi_tx_clk, rsi_tx_rst_n);
+
+  SyncFIFOIfc #(t_payload) intRXFF //<- mkS10DCFIFOtoCC(32, csi_rx_clk, rsi_rx_rst_n);
+                                   <- mkSyncFIFOToCC(32, csi_rx_clk, rsi_rx_rst_n);
+  events[e_intRXFF_deq] <- mkEventCounter;
+  ReadOnly#(Bool) intRXFF_notFull <- mkSyncValToCC(intRXFF.notFull, csi_rx_clk, rsi_rx_rst_n);
+  ReadOnly#(Bool) intRXFF_notEmpty = interface ReadOnly; method _read = intRXFF.notEmpty; endinterface;
   Sink #(Bit #(256)) intRXSnk <- toNarrowBitSink (intRXFF, clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
+  events[e_intRXSnk_put] <- mkSyncEventCounterToCC(csi_rx_clk, rsi_rx_rst_n);
+  //
 
   AXI4Stream_Shim#(0, 256, 0, 9)                  rxfifo <- mkAXI4StreamShimUGSizedFIFOF32();
+  events[e_rxfifo_enq] <- mkEventCounter;
+  events[e_rxfifo_deq] <- mkEventCounter;
   AXI4Stream_Shim#(0, 256, 0, 9)            rx_fast_fifo <- mkAXI4StreamShimUGSizedFIFOF32(clocked_by csi_rx_clk, reset_by rsi_rx_rst_n);
+  events[e_rx_fast_fifo_enq] <- mkSyncEventCounterToCC(csi_rx_clk, rsi_rx_rst_n);
+  events[e_rx_fast_fifo_deq] <- mkSyncEventCounterToCC(csi_rx_clk, rsi_rx_rst_n);
   SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9)) rx_sync_fifo <- mkS10DCFIFOtoCC(32, csi_rx_clk, rsi_rx_rst_n);
+  events[e_rx_sync_fifo_enq] <- mkSyncEventCounterToCC(csi_rx_clk, rsi_rx_rst_n);
+  events[e_rx_sync_fifo_deq] <- mkEventCounter;
   AXI4Stream_Shim#(0, 256, 0, 9)            tx_fast_fifo <- mkAXI4StreamShimSizedFIFOF32(clocked_by csi_tx_clk, reset_by rsi_tx_rst_n);
+  events[e_tx_fast_fifo_enq] <- mkSyncEventCounterToCC(csi_tx_clk, rsi_tx_rst_n);
+  events[e_tx_fast_fifo_deq] <- mkSyncEventCounterToCC(csi_tx_clk, rsi_tx_rst_n);
   SyncFIFOIfc#(AXI4Stream_Flit#(0,256,0,9)) tx_sync_fifo <- mkS10DCFIFOfromCC(32, csi_tx_clk, rsi_tx_rst_n);
+  events[e_tx_sync_fifo_enq] <- mkEventCounter;
+  events[e_tx_sync_fifo_deq] <- mkSyncEventCounterToCC(csi_tx_clk, rsi_tx_rst_n);
   FIFOF#(Bit#(64))                            data_to_tx <- mkUGFIFOF();
+
   Reg#(Bit#(32))                        data_to_tx_upper <- mkReg(0);
   Reg#(Bit#(32))                           rx_data_upper <- mkReg(0);
   Reg#(Bit#(32))                                 testreg <- mkReg(0);
@@ -147,11 +227,20 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   // rule runs in csi_rx_clk domain to forward data to the main clock domain
   rule clock_cross_rx_data (rx_fast_fifo.master.canPeek());
     let flit <- get (rx_fast_fifo.master);
+    events[e_rx_fast_fifo_deq].inc;
     // use the sync byte in the tuser field to steer where the flit should go
     SyncChannel sync = unpack (truncate (flit.tuser));
     case (sync) matches
-      InternalTraffic: if (intRXSnk.canPut) intRXSnk.put (flit.tdata);
-      default: rx_sync_fifo.enq (flit);
+      InternalTraffic: if (intRXSnk.canPut) begin
+        intRXSnk.put (flit.tdata);
+        events[e_intRXSnk_put].inc;
+        $display("%0t - BERT - clock_cross_rx_data - case InternalTraffic", $time);
+      end
+      default: begin
+        rx_sync_fifo.enq (flit);
+        events[e_rx_sync_fifo_enq].inc;
+        $display("%0t - BERT - clock_cross_rx_data - case default", $time);
+      end
     endcase
   endrule
 
@@ -163,14 +252,28 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     // we must not delay receiving BERT flits that will come
     // afterwards otherwise we'll get BERT errors.
     rx_sync_fifo.deq;
+    events[e_rx_sync_fifo_deq].inc;
 
     // use the sync byte in the tuser field to steer where the flit should go
     SyncChannel sync = unpack (truncate (flit.tuser));
     case (sync) matches
-      PingReq: ping_reply.enq (?);
-      PingRsp: ping_in_flight.deq;
-      BERTTraffic &&& bert_fifo.notFull: bert_fifo.enq (flit.tdata);
-      CtrlTraffic &&& rxfifo.slave.canPut: rxfifo.slave.put (flit);
+      PingReq: begin
+        ping_reply.enq (?);
+        $display("%0t - BERT - clock_crossed_rx_data_to_axi4_stream - case PingReq", $time);
+      end
+      PingRsp: begin
+        ping_in_flight.deq;
+        $display("%0t - BERT - clock_crossed_rx_data_to_axi4_stream - case PingRsp", $time);
+      end
+      BERTTraffic &&& bert_fifo.notFull: begin
+        bert_fifo.enq (flit.tdata);
+        $display("%0t - BERT - clock_crossed_rx_data_to_axi4_stream - case BERTTraffic", $time);
+      end
+      CtrlTraffic &&& rxfifo.slave.canPut: begin
+        $display("%0t - BERT - clock_crossed_rx_data_to_axi4_stream - case CtrlTraffic", $time);
+        rxfifo.slave.put (flit);
+        events[e_rxfifo_enq].inc;
+      end
     endcase
 
   endrule
@@ -179,6 +282,7 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   (* descending_urgency = "clock_cross_internal_tx, clock_cross_tx_data" *)
   rule clock_cross_internal_tx;
     let x <- get (intTXSrc);
+    events[e_intTXSrc_drop].inc;
     let flit = AXI4Stream_Flit { tdata: zeroExtend (pack (x))
                                , tstrb: ~0
                                , tkeep: ~0
@@ -188,10 +292,15 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
                                , tuser: {1'h1, pack (InternalTraffic)}
                                };
     tx_fast_fifo.slave.put (flit);
+    events[e_tx_fast_fifo_enq].inc;
+    $display("%0t - BERT - clock_cross_internal_tx - tdata ", $time, fshow(x));
   endrule
   rule clock_cross_tx_data;
     tx_fast_fifo.slave.put(tx_sync_fifo.first);
+    events[e_tx_fast_fifo_enq].inc;
     tx_sync_fifo.deq;
+    events[e_tx_sync_fifo_deq].inc;
+    $display("%0t - BERT - clock_cross_tx_data - ", $time, fshow(tx_sync_fifo.first));
   endrule
 
   rule do_ping_timer(ping_in_flight.notEmpty || ping_zero_timer.notEmpty);
@@ -199,9 +308,37 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
       begin
         ping_timer <= 0;
         ping_zero_timer.deq;
+        $display("%0t - BERT - do_ping_timer - ping_zero_timer.notEmpty", $time);
       end
-    else if(ping_in_flight.notEmpty)
+    else if(ping_in_flight.notEmpty) begin
       ping_timer <= ping_timer+1;
+      $display("%0t - BERT - do_ping_timer - ping_in_flight.notEmpty", $time);
+    end
+  endrule
+  Bit#(32) statusRpt = zeroExtend({ pack(rxfifo.slave.canPut)
+                                 , pack(rxfifo.master.canPeek)
+                                 , 1'b0 //, pack(rx_fast_fifo.slave.canPut)
+                                 , 1'b0 //, pack(rx_fast_fifo.master.canPeek)
+                                 , 1'b0 //, pack(rx_sync_fifo.notFull)
+                                 , pack(rx_sync_fifo.notEmpty)
+                                 , 1'b0 //, pack(tx_fast_fifo.slave.canPut)
+                                 , 1'b0 //, pack(tx_fast_fifo.master.canPeek)
+                                 , pack(tx_sync_fifo.notFull)
+                                 , 1'b0 //, pack(tx_sync_fifo.notEmpty)
+                                 , pack(data_to_tx.notFull)
+                                 , pack(data_to_tx.notEmpty)
+                                 , pack(intTXFF.notFull)
+                                 , pack(intTXFF_notEmpty)
+                                 , pack(intRXFF_notFull)
+                                 , pack(intRXFF.notEmpty)
+                                 , pack(rxfifo.master.canPeek)
+                                 , pack(tx_sync_fifo.notFull) });
+  statusRpt[31] = 1'b1; // sanity check
+  (* fire_when_enabled, no_implicit_conditions *)
+  rule report;
+    let t <- $time;
+    if (t % 5000 == 0)
+      $display("%0t - BERT - status ", $time, fshow(statusRpt));
   endrule
 
   rule read_req;
@@ -213,11 +350,12 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
         d = truncate(a.tdata);
         rx_data_upper <= truncate(a.tdata>>32);
         rxfifo.master.drop;
+        events[e_rxfifo_deq].inc;
       end
     if(r.araddr[7:3]==1)
       d = rx_data_upper;
     if(r.araddr[7:3]==2)
-      d = zeroExtend({pack(rxfifo.master.canPeek), pack(tx_sync_fifo.notFull)});
+      d = statusRpt;
     if(r.araddr[7:3]==3)
       d = ping_in_flight.notEmpty ? 0 : ping_timer;
     if(r.araddr[7:3]==4)
@@ -237,13 +375,15 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     if(r.araddr[7:3]==5'h13)
       d = timestamp()[63:32];
     if(r.araddr[7:3]==5'h14)
-      d = 32'hdeaddead; // unused at present
+      d = events[event_idx];
     if(r.araddr[7:3]==5'h15)
-      d = 32'hdeaddead; // unused at present
+      d = 32'h12341234; // unused at present
     let rsp = AXI4Lite_RFlit { rdata: d
                              , rresp: OKAY
                              , ruser: ? };
     axiShim.master.r.put (rsp);
+    $display("%0t - BERT - read_req - req: ", $time, fshow(r));
+    $display("%0t - BERT - read_req - rsp: ", $time, fshow(d));
   endrule
 
   // write requests handling, i.e. always ignnore write and return success
@@ -268,8 +408,14 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
     if (aw.awaddr[7:3]==5'h11)
       bert_gen_enabled <= w.wdata[0]==1;
 
+    if (aw.awaddr[7:3]==5'h14)
+      event_idx <= truncate(w.wdata);
+
     let rsp = AXI4Lite_BFlit { bresp: OKAY, buser: ? };
     axiShim.master.b.put (rsp);
+    $display("%0t - BERT - write_req - req(aw): ", $time, fshow(aw));
+    $display("%0t - BERT - write_req - req(w): ", $time, fshow(w));
+    $display("%0t - BERT - write_req - rsp: ", $time);
   endrule
 
   rule tx_rate_limit_pipeline;
@@ -317,6 +463,8 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
                                    , tuser: {1'h1, pack (sync)}
                                    };
         tx_sync_fifo.enq(flit);
+        $display("%0t - BERT - tx_data_mux - tdata ", $time, fshow(d), ", sync ", fshow(sync));
+        events[e_tx_sync_fifo_enq].inc;
         // DReg assignment (defaults to 1) to ensure that we don't transmit every single
         // cycle since the receiver running nominally at the same clock frequency on
         // another FPGA may be a fraction slower.
@@ -344,10 +492,10 @@ module mkBERT(Clock csi_rx_clk, Reset rsi_rx_rst_n,
   endrule
   // interface
   interface mem_csrs = axiShim.slave;
-  interface internalTX = toSink (intTXFF);
-  interface internalRX = toSource (intRXFF);
-  interface externalTX = tx_fast_fifo.master;
-  interface externalRX = rx_fast_fifo.slave;
+  interface internalTX = onPut(constFn(events[e_intTXFF_enq].inc), toSink (intTXFF));
+  interface internalRX = onDrop(constFn(events[e_intRXFF_deq].inc), toSource (intRXFF));
+  interface externalTX = onDrop(constFn(events[e_tx_fast_fifo_deq].inc),tx_fast_fifo.master);
+  interface externalRX = onPut(constFn(events[e_rx_fast_fifo_enq].inc), rx_fast_fifo.slave);
 endmodule
 
 
