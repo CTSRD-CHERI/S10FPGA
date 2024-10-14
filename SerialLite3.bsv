@@ -410,20 +410,28 @@ module mkSerialLite3
   
   FIFO#(t_bus_req) busReqFF <- mkFIFO1; // for bus access from a single rule
   FIFO#(AXI4Lite_RFlit#(t_data, t_ruser)) busRspFF <- mkFIFO1; // pipeline response to meet timing
+  Bit#(32) module_version = 32'h2345_2345;
   rule forward_bus_req;
     match {.addr, .rd, .wr, .data} = busReqFF.first;
-    sl3.bus_request (addr, rd, wr, data);
-    // Note that bus_waitrequest arrives during the clock cycle that rd is enabled
-    // so check bus_waitrequest during this clock cycle, so this rule is not atomic
-    if ((rd == 1'b1) && (sl3.bus_waitrequest == 1'b0))
-      busRspFF.enq(AXI4Lite_RFlit {  rdata: zeroExtend (sl3.bus_read_data)
-				   , rresp: OKAY
-				   , ruser: ? });
-//      axi4LiteShim.master.r.put(AXI4Lite_RFlit { rdata: zeroExtend (sl3.bus_read_data)
-//                                               , rresp: OKAY
-//                                               , ruser: ? });
-    if(sl3.bus_waitrequest == 1'b0)
-       busReqFF.deq;
+    if (addr == 0) begin
+      busReqFF.deq;
+      busRspFF.enq(AXI4Lite_RFlit { rdata: zeroExtend (module_version)
+                                  , rresp: OKAY
+                                  , ruser: ? });
+    end else begin
+      sl3.bus_request (addr, rd, wr, data);
+      // Note that bus_waitrequest arrives during the clock cycle that rd is enabled
+      // so check bus_waitrequest during this clock cycle, so this rule is not atomic
+      if ((rd == 1'b1) && (sl3.bus_waitrequest == 1'b0))
+        busRspFF.enq(AXI4Lite_RFlit {  rdata: zeroExtend (sl3.bus_read_data)
+  				   , rresp: OKAY
+  				   , ruser: ? });
+  //      axi4LiteShim.master.r.put(AXI4Lite_RFlit { rdata: zeroExtend (sl3.bus_read_data)
+  //                                               , rresp: OKAY
+  //                                               , ruser: ? });
+      if(sl3.bus_waitrequest == 1'b0)
+         busReqFF.deq;
+  end
   endrule
   rule forward_bus_response;
     axi4LiteShim.master.r.put(busRspFF.first);
@@ -452,7 +460,7 @@ module mkSerialLite3
   //----------------------------------------------------------------------------
   // interface clocked_by tx_clk reset_by tx_rst_n
   Sink #(SerialLite3_StreamFlit) rawTX = interface Sink;
-    method canPut = sl3.ready_tx==1;
+    method canPut = sl3.ready_tx==1 && !tx_wait;
     method Action put(d) if ((sl3.ready_tx==1) && !tx_wait);
       sl3.tx(d.data, pack(tx_start_of_burst), pack(d.end_of_burst), d.sync);
       // derive start_of_burst based on whether it is the first flit after an end_of_burst
