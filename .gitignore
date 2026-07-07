@@ -1,0 +1,4 @@
+# Ignore generated files and IP folders
+TimeStamp.bsv
+s10_seriallite3_4lane
+xcvr_atx_pll_s10_htile
